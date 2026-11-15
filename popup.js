@@ -5,8 +5,8 @@ button.addEventListener('click', async () => {
   try {
     const [tab] = await chrome.tabs.query({active: true, currentWindow: true});
     if (!tab?.id || !/^https:\/\/web\.telegram\.org\//.test(tab.url || '')) throw new Error('Open https://web.telegram.org and play a video first.');
-    await chrome.scripting.executeScript({target: {tabId: tab.id}, files: ['content.js']});
-    const result = await chrome.tabs.sendMessage(tab.id, {type: 'TVS_SAVE'});
+    const [injection] = await chrome.scripting.executeScript({target: {tabId: tab.id}, world: 'MAIN', files: ['content.js']});
+    const result = injection?.result;
     if (!result?.ok) throw new Error(result?.error || 'Could not start the download.');
     status.textContent = 'Download started. Progress appears on the Telegram tab. You can close this popup.';
   } catch (error) { status.textContent = error.message; }

@@ -1,6 +1,6 @@
 (() => {
-  if (globalThis.__telegramVideoSaver) return;
-  globalThis.__telegramVideoSaver = true;
+  // Run in the page world so fetch reaches Telegram's controlling service worker.
+  if (globalThis.__telegramVideoSaverV101) return globalThis.__telegramVideoSaverV101.start();
   let busy = false;
   const LIMIT = 1024 * 1024 * 1024;
   function report(message, error = false) {
@@ -34,7 +34,8 @@
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), 120000);
       try {
-        const response = await fetch(url.href, {credentials:'same-origin', signal:controller.signal, headers: url.protocol === 'blob:' ? {} : {Range:`bytes=${offset}-${offset + 2 * 1024 * 1024 - 1}`}});
+        const response = await fetch(url.href, {credentials:'same-origin', signal:controller.signal, headers: url.protocol === 'blob:' ? {} : {Range:`bytes=${offset}-${offset + 512 * 1024 - 1}`}});
+        if (response.status === 302 || response.type === 'opaqueredirect') throw new Error('Telegram redirected the video request. Reload Telegram, start playback, then retry.');
         if (![200,206].includes(response.status)) throw new Error(`Video request failed (${response.status}). Play the video and retry.`);
         mime = response.headers.get('content-type') || mime;
         if (mime.includes('mpegurl') || mime.includes('dash') || mime.includes('text/') || mime.includes('json')) throw new Error('This streaming format is not supported.');
@@ -72,13 +73,15 @@
     setTimeout(() => URL.revokeObjectURL(blobUrl), 300000);
     report('Video handed to Chrome. Check your Downloads.');
   }
-  chrome.runtime.onMessage.addListener((message, sender, reply) => {
-    if (message.type !== 'TVS_SAVE') return;
-    if (busy) {reply({ok:false,error:'A video is already downloading. Check the Telegram tab.'}); return;}
+  function start() {
+    if (busy) return {ok:false,error:'A video is already downloading. Check the Telegram tab.'};
     const video = chooseVideo();
-    if (!video) {reply({ok:false,error:'No visible video found. Open the video and start playback first.'}); return;}
-    if (video.mediaKeys) {reply({ok:false,error:'Encrypted media is not supported.'}); return;}
-    busy = true; reply({ok:true});
+    if (!video) return {ok:false,error:'No visible video found. Open the video and start playback first.'};
+    if (video.mediaKeys) return {ok:false,error:'Encrypted media is not supported.'};
+    busy = true;
     save(video).catch(error => report(error.name === 'AbortError' ? 'Download timed out. Start playback and retry.' : error.message.includes('fetch') ? 'This player uses a MediaSource stream that cannot be saved by this version. Try the other Telegram Web client (/a/ or /k/).' : error.message, true)).finally(() => {busy = false;});
-  });
+    return {ok:true};
+  }
+  globalThis.__telegramVideoSaverV101 = {start};
+  return start();
 })();

@@ -19,4 +19,7 @@ The complete video is buffered in memory before saving. Large videos can use sub
 Only `activeTab` and `scripting` permissions. Code runs only after clicking Save on web.telegram.org. No analytics, remote code, login-token extraction, or third-party servers. Use with content you have permission to save.
 
 ## Verification
-JavaScript syntax and simulated download flows are checked. Live authenticated Telegram playback has not been tested; Telegram can change its player implementation.
+JavaScript syntax and simulated download flows are checked. Chromium integration checks also verify downloading and joining byte ranges served by a local service worker, including repeated saves. Live authenticated Telegram playback has not been tested; Telegram can change its player implementation.
+
+## Version 1.0.1
+Video requests now run in Telegram's page execution world so its service worker can handle virtual media URLs. Range requests use 512 KB chunks for Web K compatibility. After updating the unpacked extension, click Reload in chrome://extensions and refresh the Telegram tab. No additional permissions are needed.
