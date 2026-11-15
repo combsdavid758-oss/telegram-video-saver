@@ -1,0 +1,14 @@
+{
+  "manifest_version": 3,
+  "name": "Telegram Video Saver",
+  "version": "1.0.0",
+  "description": "Save video data available in your signed-in Telegram Web session.",
+  "permissions": [
+    "activeTab",
+    "scripting"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Save Telegram video"
+  }
+}
